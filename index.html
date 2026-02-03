@@ -211,13 +211,8 @@
                             <span class="form__error" id="errore-nome"></span>
                         </div>
                         <div class="form__group">
-                            <label for="email" class="form__label">Email *</label>
-                            <input type="email" id="email" name="email" class="form__input" required placeholder="mario@esempio.it">
-                            <span class="form__error" id="errore-email"></span>
-                        </div>
-                        <div class="form__group">
-                            <label for="telefono" class="form__label">Telefono *</label>
-                            <input type="tel" id="telefono" name="telefono" class="form__input" required placeholder="333 1234567">
+                            <label for="telefono" class="form__label">Telefono</label>
+                            <input type="tel" id="telefono" name="telefono" class="form__input" placeholder="333 1234567">
                             <span class="form__error" id="errore-telefono"></span>
                         </div>
                         <div class="form__group">
@@ -231,11 +226,12 @@
                             </select>
                         </div>
                         <div class="form__group form__group--full">
-                            <label for="messaggio" class="form__label">Messaggio</label>
-                            <textarea id="messaggio" name="messaggio" class="form__input form__textarea" rows="5" placeholder="Scrivi qui il tuo messaggio..."></textarea>
+                            <label for="messaggio" class="form__label">Messaggio *</label>
+                            <textarea id="messaggio" name="messaggio" class="form__input form__textarea" rows="5" required placeholder="Scrivi qui il tuo messaggio..."></textarea>
+                            <span class="form__error" id="errore-messaggio"></span>
                         </div>
                     </div>
-                    <p class="form__privacy">Inviando questo modulo si aprirà il tuo client email con i dati inseriti. I dati saranno trattati in conformità alla nostra <a href="privacy.html">Privacy Policy</a>.</p>
+                    <p class="form__privacy">Inviando questo modulo si aprirà il tuo client email o Gmail con i dati inseriti. I dati saranno trattati in conformità alla nostra <a href="privacy.html">Privacy Policy</a>.</p>
                     <button type="submit" class="btn btn--primary btn--full">Invia Richiesta</button>
                 </form>
             </div>

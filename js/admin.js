@@ -82,6 +82,7 @@ function caricaAuto() {
             snapshot.forEach(doc => {
                 autoList.push({ id: doc.id, ...doc.data() });
             });
+            eliminaAutoScadute();
             renderTabella();
             aggiornaStats();
             adminLoading.hidden = true;
@@ -90,6 +91,63 @@ function caricaAuto() {
             console.error('Errore caricamento:', error);
             adminLoading.textContent = 'Errore nel caricamento. Riprova.';
         });
+}
+
+// ==========================================================================
+// Elimina automaticamente auto vendute da più di 10 giorni
+// ==========================================================================
+function eliminaAutoScadute() {
+    const GIORNI_SCADENZA = 10;
+    const now = new Date();
+    const scadute = [];
+
+    autoList.forEach(auto => {
+        if (auto.attiva === false && auto.vendutaIl) {
+            const vendutaDate = auto.vendutaIl.toDate ? auto.vendutaIl.toDate() : new Date(auto.vendutaIl);
+            const diffMs = now - vendutaDate;
+            const diffGiorni = diffMs / (1000 * 60 * 60 * 24);
+            if (diffGiorni >= GIORNI_SCADENZA) {
+                scadute.push(auto);
+            }
+        }
+    });
+
+    if (scadute.length === 0) return;
+
+    const batch = db.batch();
+    scadute.forEach(auto => {
+        batch.delete(db.collection('auto').doc(auto.id));
+    });
+
+    batch.commit()
+        .then(() => {
+            // Rimuovi le auto scadute dalla lista locale
+            const idsScadute = new Set(scadute.map(a => a.id));
+            autoList = autoList.filter(a => !idsScadute.has(a.id));
+            renderTabella();
+            aggiornaStats();
+            mostraNotifica(scadute.length + ' auto vendute scadute rimosse automaticamente.', 'info');
+        })
+        .catch(error => {
+            console.error('Errore eliminazione auto scadute:', error);
+        });
+}
+
+// ==========================================================================
+// Calcola giorni rimanenti prima della scadenza
+// ==========================================================================
+function calcolaScadenza(auto) {
+    if (auto.attiva !== false || !auto.vendutaIl) return null;
+    const GIORNI_SCADENZA = 10;
+    const vendutaDate = auto.vendutaIl.toDate ? auto.vendutaIl.toDate() : new Date(auto.vendutaIl);
+    const scadenza = new Date(vendutaDate.getTime() + GIORNI_SCADENZA * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const diffMs = scadenza - now;
+    const giorniRimanenti = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return {
+        scadenza: scadenza,
+        giorniRimanenti: Math.max(0, giorniRimanenti)
+    };
 }
 
 // ==========================================================================
@@ -111,8 +169,22 @@ function renderTabella() {
         const toggleText = attiva ? 'Venduta' : 'Riattiva';
         const imgSrc = auto.immagine || 'https://via.placeholder.com/80x50/E0E0E0/666666?text=No+Foto';
 
+        // Calcola scadenza per auto vendute
+        let scadenzaHtml = '-';
+        if (!attiva) {
+            const info = calcolaScadenza(auto);
+            if (info) {
+                const dataScadenza = info.scadenza.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const giorni = info.giorniRimanenti;
+                const classeScadenza = giorni <= 3 ? 'scadenza--urgente' : 'scadenza--normale';
+                scadenzaHtml = '<span class="scadenza ' + classeScadenza + '">' + dataScadenza + '<br><small>' + giorni + (giorni === 1 ? ' giorno' : ' giorni') + ' rimast' + (giorni === 1 ? 'o' : 'i') + '</small></span>';
+            } else {
+                scadenzaHtml = '<span class="scadenza scadenza--sconosciuta">N/D</span>';
+            }
+        }
+
         return `
-            <tr>
+            <tr${!attiva ? ' class="admin-row--venduta"' : ''}>
                 <td data-label="Foto">
                     <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(auto.marca)} ${escapeHtml(auto.modello)}" class="admin-table__thumb">
                 </td>
@@ -120,6 +192,7 @@ function renderTabella() {
                 <td data-label="Anno">${auto.anno || '-'}</td>
                 <td data-label="Prezzo">${formatPrezzo(auto.prezzo)}</td>
                 <td data-label="Stato"><span class="badge ${badgeClass}">${badgeText}</span></td>
+                <td data-label="Scadenza">${scadenzaHtml}</td>
                 <td data-label="Azioni">
                     <div class="admin-actions">
                         <button class="btn btn--primary btn--icon" onclick="apriModalModifica('${auto.id}')">Modifica</button>
@@ -234,6 +307,8 @@ formAuto.addEventListener('submit', async e => {
         const autoId = document.getElementById('auto-id').value;
         const immagineUrl = document.getElementById('auto-foto-url').value.trim();
 
+        const nuovaAttiva = document.getElementById('auto-attiva').value === 'true';
+
         const dati = {
             marca: document.getElementById('auto-marca').value.trim(),
             modello: document.getElementById('auto-modello').value.trim(),
@@ -242,11 +317,27 @@ formAuto.addEventListener('submit', async e => {
             prezzo: parseInt(document.getElementById('auto-prezzo').value),
             alimentazione: document.getElementById('auto-alimentazione').value,
             cambio: document.getElementById('auto-cambio').value,
-            attiva: document.getElementById('auto-attiva').value === 'true',
+            attiva: nuovaAttiva,
             descrizione: document.getElementById('auto-descrizione').value.trim(),
             immagine: immagineUrl,
             modificatoIl: firebase.firestore.FieldValue.serverTimestamp()
         };
+
+        // Gestione vendutaIl per scadenza automatica
+        if (autoId) {
+            const autoEsistente = autoList.find(a => a.id === autoId);
+            const eraAttiva = autoEsistente ? autoEsistente.attiva !== false : true;
+            if (!nuovaAttiva && eraAttiva) {
+                // Appena segnata come venduta
+                dati.vendutaIl = firebase.firestore.FieldValue.serverTimestamp();
+            } else if (nuovaAttiva && !eraAttiva) {
+                // Rimessa in vendita
+                dati.vendutaIl = firebase.firestore.FieldValue.delete();
+            }
+        } else if (!nuovaAttiva) {
+            // Nuova auto aggiunta direttamente come venduta
+            dati.vendutaIl = firebase.firestore.FieldValue.serverTimestamp();
+        }
 
         if (autoId) {
             await db.collection('auto').doc(autoId).update(dati);
@@ -272,12 +363,22 @@ formAuto.addEventListener('submit', async e => {
 // Toggle Venduta/In vendita
 // ==========================================================================
 function toggleVenduta(autoId, attualeAttiva) {
-    db.collection('auto').doc(autoId).update({
+    const updateData = {
         attiva: !attualeAttiva,
         modificatoIl: firebase.firestore.FieldValue.serverTimestamp()
-    })
+    };
+
+    if (attualeAttiva) {
+        // Segnata come venduta: salva timestamp di vendita
+        updateData.vendutaIl = firebase.firestore.FieldValue.serverTimestamp();
+    } else {
+        // Rimessa in vendita: rimuovi timestamp di vendita
+        updateData.vendutaIl = firebase.firestore.FieldValue.delete();
+    }
+
+    db.collection('auto').doc(autoId).update(updateData)
     .then(() => {
-        mostraNotifica(attualeAttiva ? 'Auto segnata come venduta.' : 'Auto rimessa in vendita.', 'successo');
+        mostraNotifica(attualeAttiva ? 'Auto segnata come venduta. Verrà rimossa automaticamente tra 10 giorni.' : 'Auto rimessa in vendita.', 'successo');
         caricaAuto();
     })
     .catch(error => {

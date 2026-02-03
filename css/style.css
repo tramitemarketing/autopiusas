@@ -674,6 +674,48 @@ img {
     color: var(--color-text-light);
 }
 
+/* Card venduta */
+.card--venduta {
+    background-color: #e8e8e8;
+    border-color: #ccc;
+    opacity: 0.85;
+}
+
+.card--venduta:hover {
+    transform: none;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    border-color: #ccc;
+}
+
+.card__image-wrap {
+    position: relative;
+    overflow: hidden;
+}
+
+.card__badge-venduta {
+    position: absolute;
+    top: 15px;
+    right: -35px;
+    background-color: #555;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 5px 40px;
+    transform: rotate(45deg);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.card--venduta .card__image {
+    filter: grayscale(60%);
+}
+
+.card--venduta .card__price {
+    color: #999;
+}
+
 /* Catalogo specifico */
 .catalogo-intro {
     text-align: center;
@@ -1519,6 +1561,35 @@ img {
     background-color: var(--color-primary);
     width: 0%;
     transition: width 0.3s ease;
+}
+
+/* Riga venduta nella tabella admin */
+.admin-row--venduta {
+    background-color: #f5f5f5;
+}
+
+/* Scadenza */
+.scadenza {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.scadenza small {
+    font-weight: 400;
+}
+
+.scadenza--normale {
+    color: #856404;
+}
+
+.scadenza--urgente {
+    color: #c0392b;
+}
+
+.scadenza--sconosciuta {
+    color: #999;
 }
 
 /* Toast notifiche */
