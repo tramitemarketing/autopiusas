@@ -158,28 +158,39 @@ function setupForm() {
     if (!form) return;
 
     form.addEventListener('submit', (e) => {
+        // Blocca l'invio standard del form al server
         e.preventDefault();
 
+        // Esegue la validazione
         if (!validateForm()) return;
 
+        // Recupero valori
         const nome = document.getElementById('nome').value.trim();
         const email = document.getElementById('email').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
         const servizio = document.getElementById('servizio').value;
         const messaggio = document.getElementById('messaggio').value.trim();
 
+        // Costruzione Oggetto
         const subject = encodeURIComponent(
             'Richiesta informazioni' + (servizio ? ' - ' + servizio : '')
         );
-        const bodyText = 'Nome: ' + nome + '\n' +
-            'Email: ' + email + '\n' +
-            'Telefono: ' + telefono + '\n' +
-            'Servizio: ' + (servizio || 'Non specificato') + '\n\n' +
-            'Messaggio:\n' + (messaggio || 'Nessun messaggio aggiuntivo');
+
+        // Costruzione Corpo (usando \r\n per la compatibilità con i client email)
+        const bodyText = 
+            'Nome: ' + nome + '\r\n' +
+            'Email: ' + email + '\r\n' +
+            'Telefono: ' + telefono + '\r\n' +
+            'Servizio: ' + (servizio || 'Non specificato') + '\r\n\r\n' +
+            'Messaggio:\r\n' + (messaggio || 'Nessun messaggio aggiuntivo');
+
         const body = encodeURIComponent(bodyText);
 
-        const mailtoLink = 'mailto:autopiusas@pec.it?subject=' + subject + '&body=' + body;
-        window.location.href = mailtoLink;
+        // Costruzione link finale
+        const mailtoLink = `mailto:autopiusas@pec.it?subject=${subject}&body=${body}`;
+
+        // ESECUZIONE: Usiamo location.assign che è più pulito per i protocolli esterni
+        window.location.assign(mailtoLink);
     });
 }
 
@@ -188,16 +199,16 @@ function validateForm() {
 
     // Pulisci errori precedenti
     document.querySelectorAll('.form__error').forEach(el => { el.textContent = ''; });
-    document.querySelectorAll('.form__input--error').forEach(el => { el.classList.remove('form__input--error'); });
+    document.querySelectorAll('.form_input--error').forEach(el => { el.classList.remove('form_input--error'); });
 
-    // Nome
+    // Validazione Nome
     const nome = document.getElementById('nome');
     if (!nome.value.trim()) {
         showFormError('nome', 'Il nome è obbligatorio');
         valid = false;
     }
 
-    // Email
+    // Validazione Email
     const email = document.getElementById('email');
     if (!email.value.trim()) {
         showFormError('email', "L'email è obbligatoria");
@@ -207,7 +218,7 @@ function validateForm() {
         valid = false;
     }
 
-    // Telefono
+    // Validazione Telefono
     const telefono = document.getElementById('telefono');
     const phoneClean = telefono.value.trim().replace(/[\s\-\+\(\)]/g, '');
     if (!telefono.value.trim()) {
@@ -227,6 +238,9 @@ function showFormError(fieldId, message) {
     if (errorEl) errorEl.textContent = message;
     if (inputEl) inputEl.classList.add('form__input--error');
 }
+
+// Inizializza il form
+setupForm();
 
 // ==========================================================================
 // Cookie Banner
