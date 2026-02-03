@@ -171,15 +171,15 @@ function setupForm() {
         const subject = encodeURIComponent(
             'Richiesta informazioni' + (servizio ? ' - ' + servizio : '')
         );
-        const body = encodeURIComponent(
-            'Nome: ' + nome + '\n' +
+        const bodyText = 'Nome: ' + nome + '\n' +
             'Email: ' + email + '\n' +
             'Telefono: ' + telefono + '\n' +
             'Servizio: ' + (servizio || 'Non specificato') + '\n\n' +
-            'Messaggio:\n' + (messaggio || 'Nessun messaggio aggiuntivo')
-        );
+            'Messaggio:\n' + (messaggio || 'Nessun messaggio aggiuntivo');
+        const body = encodeURIComponent(bodyText);
 
-        window.location.href = 'mailto:autopiusas@pec.it?subject=' + subject + '&body=' + body;
+        const mailtoLink = 'mailto:autopiusas@pec.it?subject=' + subject + '&body=' + body;
+        window.location.href = mailtoLink;
     });
 }
 
