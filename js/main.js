@@ -38,13 +38,18 @@ function caricaAutoDaFirestore() {
     grid.innerHTML = '<p class="catalogo__empty">Caricamento auto in corso...</p>';
 
     db.collection('auto')
-        .where('attiva', '==', true)
         .orderBy('creatoIl', 'desc')
         .get()
         .then(snapshot => {
             autoDisponibili = [];
             snapshot.forEach(doc => {
                 autoDisponibili.push({ id: doc.id, ...doc.data() });
+            });
+            // Ordina: auto attive prima, vendute in fondo
+            autoDisponibili.sort((a, b) => {
+                const aAttiva = a.attiva !== false ? 0 : 1;
+                const bAttiva = b.attiva !== false ? 0 : 1;
+                return aAttiva - bAttiva;
             });
             renderAutoGrid();
             setupFilters();
@@ -68,14 +73,23 @@ function renderAutoGrid(autoList) {
         return;
     }
 
-    autoGrid.innerHTML = list.map(auto => `
-        <article class="card animate-on-scroll">
-            <img
-                src="${auto.immagine}"
-                alt="${auto.marca} ${auto.modello} ${auto.anno}"
-                class="card__image"
-                loading="lazy"
-            >
+    autoGrid.innerHTML = list.map(auto => {
+        const venduta = auto.attiva === false;
+        const cardClass = venduta ? 'card card--venduta animate-on-scroll' : 'card animate-on-scroll';
+        const badge = venduta ? '<span class="card__badge-venduta">VENDUTA</span>' : '';
+        const btnHtml = venduta ? '' : '<a href="index.html#richiedi-info" class="btn btn--primary btn--small card__btn">Richiedi Info</a>';
+
+        return `
+        <article class="${cardClass}">
+            <div class="card__image-wrap">
+                <img
+                    src="${auto.immagine}"
+                    alt="${auto.marca} ${auto.modello} ${auto.anno}"
+                    class="card__image"
+                    loading="lazy"
+                >
+                ${badge}
+            </div>
             <div class="card__content">
                 <h3 class="card__title">${auto.marca} ${auto.modello}</h3>
                 <div class="card__details">
@@ -84,12 +98,13 @@ function renderAutoGrid(autoList) {
                     <span class="card__detail">${auto.alimentazione}</span>
                     <span class="card__detail">${auto.cambio}</span>
                 </div>
-                <p class="card__price">${formatPrezzo(auto.prezzo)}</p>
+                <p class="card__price">${venduta ? '<s>' + formatPrezzo(auto.prezzo) + '</s>' : formatPrezzo(auto.prezzo)}</p>
                 <p class="card__description">${auto.descrizione}</p>
-                <a href="index.html#richiedi-info" class="btn btn--primary btn--small card__btn">Richiedi Info</a>
+                ${btnHtml}
             </div>
         </article>
-    `).join('');
+        `;
+    }).join('');
 
     setupScrollAnimations();
 }
@@ -163,23 +178,32 @@ function setupForm() {
         if (!validateForm()) return;
 
         const nome = document.getElementById('nome').value.trim();
-        const email = document.getElementById('email').value.trim();
         const telefono = document.getElementById('telefono').value.trim();
         const servizio = document.getElementById('servizio').value;
         const messaggio = document.getElementById('messaggio').value.trim();
 
-        const subject = encodeURIComponent(
-            'Richiesta informazioni' + (servizio ? ' - ' + servizio : '')
-        );
+        const subject = 'Richiesta informazioni' + (servizio ? ' - ' + servizio : '');
         const bodyText = 'Nome: ' + nome + '\n' +
-            'Email: ' + email + '\n' +
-            'Telefono: ' + telefono + '\n' +
+            'Telefono: ' + (telefono || 'Non fornito') + '\n' +
             'Servizio: ' + (servizio || 'Non specificato') + '\n\n' +
-            'Messaggio:\n' + (messaggio || 'Nessun messaggio aggiuntivo');
-        const body = encodeURIComponent(bodyText);
+            'Messaggio:\n' + messaggio;
 
-        const mailtoLink = 'mailto:autopiusas@pec.it?subject=' + subject + '&body=' + body;
-        window.location.href = mailtoLink;
+        const destinatario = 'autopiusas@pec.it';
+        const mailtoLink = 'mailto:' + destinatario + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyText);
+
+        // Gmail web link (per PC senza client email)
+        const gmailLink = 'https://mail.google.com/mail/?view=cm&to=' + encodeURIComponent(destinatario) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyText);
+
+        // Prova ad aprire mailto (funziona su mobile con app email)
+        // e apri Gmail in un nuovo tab come fallback per desktop
+        var mailtoAperto = false;
+        var w = window.open(mailtoLink, '_self');
+
+        // Dopo un breve delay, se siamo probabilmente su desktop senza client email,
+        // apri anche Gmail web come alternativa
+        setTimeout(function() {
+            window.open(gmailLink, '_blank');
+        }, 500);
     });
 }
 
@@ -197,24 +221,20 @@ function validateForm() {
         valid = false;
     }
 
-    // Email
-    const email = document.getElementById('email');
-    if (!email.value.trim()) {
-        showFormError('email', "L'email è obbligatoria");
-        valid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
-        showFormError('email', "Inserisci un'email valida");
-        valid = false;
+    // Telefono (facoltativo ma se compilato deve essere valido)
+    const telefono = document.getElementById('telefono');
+    if (telefono.value.trim()) {
+        const phoneClean = telefono.value.trim().replace(/[\s\-\+\(\)]/g, '');
+        if (phoneClean.length < 9 || !/^\d+$/.test(phoneClean)) {
+            showFormError('telefono', 'Inserisci un numero valido (minimo 9 cifre)');
+            valid = false;
+        }
     }
 
-    // Telefono
-    const telefono = document.getElementById('telefono');
-    const phoneClean = telefono.value.trim().replace(/[\s\-\+\(\)]/g, '');
-    if (!telefono.value.trim()) {
-        showFormError('telefono', 'Il telefono è obbligatorio');
-        valid = false;
-    } else if (phoneClean.length < 9 || !/^\d+$/.test(phoneClean)) {
-        showFormError('telefono', 'Inserisci un numero valido (minimo 9 cifre)');
+    // Messaggio (obbligatorio)
+    const messaggio = document.getElementById('messaggio');
+    if (!messaggio.value.trim()) {
+        showFormError('messaggio', 'Il messaggio è obbligatorio');
         valid = false;
     }
 
