@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Pannello Amministrazione - Auto Più S.A.S.</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header Admin -->
+    <header class="header">
+        <div class="container">
+            <a href="index.html" class="logo">Auto Più S.A.S.</a>
+            <div class="admin-header-right">
+                <span class="admin-badge">Admin</span>
+                <button id="btn-logout" class="btn btn--outline btn--small" hidden>Esci</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- LOGIN -->
+        <section id="admin-login" class="section admin-login">
+            <div class="container">
+                <div class="admin-login__box">
+                    <h1>Accesso Amministrazione</h1>
+                    <form id="login-form">
+                        <div class="form__group">
+                            <label for="login-email" class="form__label">Email</label>
+                            <input type="email" id="login-email" class="form__input" required placeholder="email@esempio.it">
+                        </div>
+                        <div class="form__group">
+                            <label for="login-password" class="form__label">Password</label>
+                            <input type="password" id="login-password" class="form__input" required placeholder="Password">
+                        </div>
+                        <p id="login-errore" class="form__error"></p>
+                        <button type="submit" class="btn btn--primary btn--full">Accedi</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD -->
+        <section id="admin-dashboard" class="section admin-dashboard" hidden>
+            <div class="container">
+                <div class="admin-top">
+                    <h1>Gestione Catalogo</h1>
+                    <button id="btn-aggiungi-auto" class="btn btn--primary">+ Aggiungi Auto</button>
+                </div>
+
+                <!-- Statistiche -->
+                <div class="admin-stats">
+                    <div class="admin-stat">
+                        <span class="admin-stat__number" id="stat-totale">0</span>
+                        <span class="admin-stat__label">Auto Totali</span>
+                    </div>
+                    <div class="admin-stat">
+                        <span class="admin-stat__number" id="stat-attive">0</span>
+                        <span class="admin-stat__label">In Vendita</span>
+                    </div>
+                    <div class="admin-stat">
+                        <span class="admin-stat__number" id="stat-vendute">0</span>
+                        <span class="admin-stat__label">Vendute</span>
+                    </div>
+                </div>
+
+                <!-- Tabella Auto -->
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Foto</th>
+                                <th>Auto</th>
+                                <th>Anno</th>
+                                <th>Prezzo</th>
+                                <th>Stato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-auto-tbody"></tbody>
+                    </table>
+                </div>
+
+                <p id="admin-loading" class="admin-loading">Caricamento...</p>
+                <p id="admin-empty" class="catalogo__empty" hidden>Nessuna auto nel catalogo. Clicca "+ Aggiungi Auto" per iniziare.</p>
+            </div>
+        </section>
+
+        <!-- MODAL AGGIUNGI/MODIFICA -->
+        <div id="modal-auto" class="admin-modal" hidden>
+            <div class="admin-modal__content">
+                <div class="admin-modal__header">
+                    <h2 id="modal-titolo">Aggiungi Auto</h2>
+                    <button class="admin-modal__close" id="modal-chiudi">&times;</button>
+                </div>
+                <form id="form-auto" class="form">
+                    <input type="hidden" id="auto-id">
+                    <input type="hidden" id="auto-immagine-url">
+                    <div class="form__grid">
+                        <div class="form__group">
+                            <label for="auto-marca" class="form__label">Marca *</label>
+                            <input type="text" id="auto-marca" class="form__input" required placeholder="es. Fiat">
+                        </div>
+                        <div class="form__group">
+                            <label for="auto-modello" class="form__label">Modello *</label>
+                            <input type="text" id="auto-modello" class="form__input" required placeholder="es. Panda">
+                        </div>
+                        <div class="form__group">
+                            <label for="auto-anno" class="form__label">Anno *</label>
+                            <input type="number" id="auto-anno" class="form__input" required min="1990" max="2030" placeholder="es. 2019">
+                        </div>
+                        <div class="form__group">
+                            <label for="auto-km" class="form__label">Chilometri *</label>
+                            <input type="number" id="auto-km" class="form__input" required min="0" placeholder="es. 45000">
+                        </div>
+                        <div class="form__group">
+                            <label for="auto-prezzo" class="form__label">Prezzo (EUR) *</label>
+                            <input type="number" id="auto-prezzo" class="form__input" required min="0" placeholder="es. 8500">
+                        </div>
+                        <div class="form__group">
+                            <label for="auto-alimentazione" class="form__label">Alimentazione *</label>
+                            <select id="auto-alimentazione" class="form__input" required>
+                                <option value="">Seleziona</option>
+                                <option value="Benzina">Benzina</option>
+                                <option value="Diesel">Diesel</option>
+                                <option value="GPL">GPL</option>
+                                <option value="Metano">Metano</option>
+                                <option value="Ibrido">Ibrido</option>
+                                <option value="Elettrico">Elettrico</option>
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="auto-cambio" class="form__label">Cambio *</label>
+                            <select id="auto-cambio" class="form__input" required>
+                                <option value="">Seleziona</option>
+                                <option value="Manuale">Manuale</option>
+                                <option value="Automatico">Automatico</option>
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="auto-attiva" class="form__label">Stato</label>
+                            <select id="auto-attiva" class="form__input">
+                                <option value="true">In vendita</option>
+                                <option value="false">Venduta / Nascosta</option>
+                            </select>
+                        </div>
+                        <div class="form__group form__group--full">
+                            <label for="auto-descrizione" class="form__label">Descrizione</label>
+                            <textarea id="auto-descrizione" class="form__input form__textarea" rows="3" placeholder="Descrizione dell'auto..."></textarea>
+                        </div>
+                        <div class="form__group form__group--full">
+                            <label for="auto-foto-url" class="form__label">URL Foto Auto</label>
+                            <input type="url" id="auto-foto-url" class="form__input" placeholder="Incolla qui il link dell'immagine (es. da ImgBB)">
+                            <p class="form__hint">Carica la foto su <a href="https://imgbb.com/" target="_blank" rel="noopener">imgbb.com</a> e incolla qui il link diretto</p>
+                            <div id="foto-preview" class="admin-upload__preview"></div>
+                        </div>
+                    </div>
+                    <div class="admin-modal__actions">
+                        <button type="button" id="btn-annulla" class="btn btn--outline">Annulla</button>
+                        <button type="submit" class="btn btn--primary" id="btn-salva">Salva Auto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL ELIMINA -->
+        <div id="modal-elimina" class="admin-modal" hidden>
+            <div class="admin-modal__content admin-modal__content--small">
+                <h3>Conferma Eliminazione</h3>
+                <p id="elimina-messaggio">Sei sicuro di voler eliminare questa auto?</p>
+                <div class="admin-modal__actions">
+                    <button id="btn-elimina-annulla" class="btn btn--outline">Annulla</button>
+                    <button id="btn-elimina-conferma" class="btn btn--danger">Elimina</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
